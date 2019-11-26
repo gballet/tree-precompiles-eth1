@@ -1,0 +1,13 @@
+[package]
+name = "tree-precompile-1x"
+license = "Apache-2.0"
+version = "0.1.0"
+authors = ["Guillaume Ballet <gballet@gmail.com>"]
+edition = "2018"
+publish = false
+description = "MPT management precompile in Rust"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+multiproof-rs = "0.1"
