@@ -1,7 +1,8 @@
 [package]
 name = "tree-precompile-1x"
-license = "Apache-2.0"
 version = "0.1.0"
+license = "Apache-2.0"
+repository = "https://github.com/gballet/tree-precompiles-eth1"
 authors = ["Guillaume Ballet <gballet@gmail.com>"]
 edition = "2018"
 publish = false
@@ -12,3 +13,6 @@ description = "MPT management precompile in Rust"
 [dependencies]
 multiproof-rs = {path= "../multiproof-rs"}
 rlp = "0.4.2"
+
+[lib]
+crate-type = ["cdylib"]

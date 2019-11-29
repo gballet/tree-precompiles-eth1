@@ -2,19 +2,28 @@ extern crate multiproof_rs;
 extern crate rlp;
 
 #[allow(non_upper_case_globals)]
-static mut input_data: &'static [u8] = &[0u8; 32];
+#[no_mangle]
+pub static mut input_data: &'static mut [u8] = &mut [0u8; 1024];
 
-extern "C" {
-    static mut output: bool;
-    static input_size: usize;
-}
+#[allow(non_upper_case_globals)]
+#[no_mangle]
+pub static mut output: bool = false;
+
+#[allow(non_upper_case_globals)]
+#[cfg(not(test))]
+#[no_mangle]
+static input_size: usize = 0usize;
+
+#[allow(non_upper_case_globals)]
+#[cfg(test)]
+static mut input_size: usize = 0usize;
 
 use multiproof_rs::{rebuild, Multiproof};
 
 fn verify() -> Result<bool, String> {
     // Get the data
     unsafe {
-        if input_size < input_data.len() {
+        if input_size > input_data.len() {
             return Err(format!("input size exceeds allowed data"));
         }
     }
@@ -47,10 +56,17 @@ mod tests {
     #[test]
     fn test_recover_account() {
         let mut root = Node::default();
-        insert_leaf(&mut root, &NibbleKey::from(vec![0u8; 32]), vec![0u8; 32]).unwrap();
-        let encoding = rlp::encode(&root);
-        // TODO copy input data
-        unsafe { input_size = encoding.len() };
-        verify().unwrap();
+        root = insert_leaf(&mut root, &NibbleKey::from(vec![0u8; 32]), vec![0u8; 32]).unwrap();
+        root = insert_leaf(&mut root, &NibbleKey::from(vec![1u8; 32]), vec![1u8; 32]).unwrap();
+        let proof = make_multiproof(&root, vec![NibbleKey::from(vec![1u8; 32])]).unwrap();
+        let encoding = rlp::encode(&proof);
+        unsafe {
+            input_size = encoding.len();
+            &mut input_data[..input_size].copy_from_slice(&encoding);
+        };
+
+        // Verify that the acount was indeed in the proof
+        assert!(verify().unwrap());
+    }
     }
 }
