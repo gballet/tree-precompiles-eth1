@@ -18,7 +18,7 @@ static input_size: usize = 0usize;
 #[cfg(test)]
 static mut input_size: usize = 0usize;
 
-use multiproof_rs::{rebuild, Multiproof};
+use multiproof_rs::{Multiproof, Node, ProofToTree};
 
 fn verify() -> Result<bool, String> {
     // Get the data
@@ -31,7 +31,7 @@ fn verify() -> Result<bool, String> {
 
     // Deserialize the data into a tree
     let proof = rlp::decode::<Multiproof>(&input).unwrap();
-    match rebuild(&proof) {
+    match proof.rebuild() as Result<Node, String> {
         Ok(_) => Ok(true),
         _ => Ok(false),
     }
@@ -56,8 +56,10 @@ mod tests {
     #[test]
     fn test_recover_account() {
         let mut root = Node::default();
-        root = insert_leaf(&mut root, &NibbleKey::from(vec![0u8; 32]), vec![0u8; 32]).unwrap();
-        root = insert_leaf(&mut root, &NibbleKey::from(vec![1u8; 32]), vec![1u8; 32]).unwrap();
+        root.insert(&NibbleKey::from(vec![0u8; 32]), vec![0u8; 32])
+            .unwrap();
+        root.insert(&NibbleKey::from(vec![1u8; 32]), vec![1u8; 32])
+            .unwrap();
         let proof = make_multiproof(&root, vec![NibbleKey::from(vec![1u8; 32])]).unwrap();
         let encoding = rlp::encode(&proof);
         unsafe {
@@ -67,6 +69,5 @@ mod tests {
 
         // Verify that the acount was indeed in the proof
         assert!(verify().unwrap());
-    }
     }
 }

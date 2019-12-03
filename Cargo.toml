@@ -11,7 +11,7 @@ description = "MPT management precompile in Rust"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-multiproof-rs = {path= "../multiproof-rs"}
+multiproof-rs = "^0.1.2" 
 rlp = "0.4.2"
 
 [lib]
