@@ -1,0 +1,18 @@
+[package]
+name = "precompile-1x-tree-verify"
+version = "0.1.0"
+license = "Apache-2.0"
+repository = "https://github.com/gballet/tree-precompiles-eth1"
+authors = ["Guillaume Ballet <gballet@gmail.com>"]
+edition = "2018"
+publish = false
+description = "MPT verification precompile in Rust"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+multiproof-rs = "^0.1.2" 
+rlp = "0.4.2"
+
+[lib]
+crate-type = ["cdylib"]
