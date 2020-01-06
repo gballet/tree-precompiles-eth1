@@ -37,7 +37,10 @@ impl rlp::Decodable for Account {
         match rlp.item_count()? {
             4 => {
                 //let addr = rlp.val_at::<NibbleKey>(0)?;
-                let addr = NibbleKey::from(ByteKey::from(rlp.val_at::<Vec<u8>>(0)?));
+                // XXX update multiproof to implement Into<Vec<u8>> for ByteKey so
+                // that keys can be stored as bytes instead of nibbles, which would
+                // make proofs shorter.
+                let addr = NibbleKey::from(rlp.val_at::<Vec<u8>>(0)?);
                 let balance = rlp.val_at(1)?;
                 let code = rlp.val_at(2)?;
                 let state = rlp.val_at(3)?;
@@ -47,6 +50,25 @@ impl rlp::Decodable for Account {
             0 => Ok(Account::Empty),
             n => panic!(format!("Invalid payload {}", n)),
         }
+    }
+}
+
+impl rlp::Encodable for Account {
+    fn rlp_append(&self, stream: &mut rlp::RlpStream) {
+        match self {
+            Self::Empty => stream.append_empty_data(),
+            Self::Existing(addr, balance, code, state) => {
+                let mut s = rlp::RlpStream::new();
+                s.begin_unbounded_list()
+                    .append(addr)
+                    .append(balance)
+                    .append(code)
+                    .append(state)
+                    .finalize_unbounded_list();
+                let encoding = s.out();
+                stream.append_raw(&encoding, 1)
+            }
+        };
     }
 }
 
@@ -132,7 +154,8 @@ mod tests {
     fn code_decode_account() {
         let account = Account::Existing(NibbleKey::from(vec![1u8; 32]), 0, vec![10u8], false);
         let encoding = rlp::encode(&account);
-        let decoded = rlp::decode::<Account>(&encoding);
+        let decoded = rlp::decode::<Account>(&encoding).unwrap();
+        assert_eq!(account, decoded);
 
         let accounts = vec![
             Account::Existing(NibbleKey::from(vec![1u8; 32]), 0, vec![10u8], false),
