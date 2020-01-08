@@ -73,29 +73,27 @@ impl rlp::Encodable for Account {
 }
 
 fn rlp_stream_size(payload: Vec<u8>) -> usize {
-    match payload.len() {
-        0 => 0,
-        1 => 1,
-        len => {
-            let id = payload[0];
-            if id < 247 {
-                id as usize - 192 + 1
-            } else {
-                let size_size = id as usize - 247;
-                if len < size_size + 1 {
-                    panic!("Invalid payload");
-                }
-                let mut size: usize = 0;
-                for i in 0..size_size {
-                    size = (size << 8) + payload[1 + i] as usize;
-                }
-                size + 1 + size_size
+    if payload.len() < 2 {
+        return payload.len();
+    }
+    match payload[0] as usize {
+        id if id < 192 => id,
+        id if id < 247 => id - 192 + 1,
+        id => {
+            let size_size = id - 247;
+            if id < size_size + 1 {
+                panic!("Invalid payload");
             }
+            let mut size: usize = 0;
+            for i in 0..size_size {
+                size = (size << 8) + payload[1 + i] as usize;
+            }
+            size + 1 + size_size
         }
     }
 }
 
-fn verify() -> Result<bool, String> {
+fn verify() -> Result<Vec<bool>, String> {
     let address_list_size = unsafe { rlp_stream_size(address_list.to_vec()) };
     // Debug traces, do not remove yet
     //unsafe {
@@ -114,30 +112,24 @@ fn verify() -> Result<bool, String> {
     //println!("account={:?}", account);
     //}
 
+    let mut ret = vec![false; accounts.len()];
+
     // Deserialize the data into a tree
     let input_proof = unsafe { serialized_proof.to_vec() };
     let proof = rlp::decode::<Multiproof>(&input_proof).unwrap();
-    match proof.rebuild() as Result<Node, String> {
-        Ok(tree) => {
-            // Check that each account in present in the tree
-            for account in accounts.iter() {
-                match account {
-                    Account::Empty => {}
-                    Account::Existing(addr, _, _, _) => {
-                        if
+    let tree: Node = proof.rebuild()?;
+    // Check that each account in present in the tree
+    for (i, account) in accounts.iter().enumerate() {
+        match account {
+            Account::Empty => {}
+            Account::Existing(addr, _, _, _) => {
+                ret[i] =
                         /* !tree.has_key(addr) */
-                        !tree.is_key_present(addr) {
-                            return Err(format!("missing key {:?}", addr));
-                        }
-                    }
-                }
+                        tree.is_key_present(addr);
             }
-
-            unsafe { valid = true };
-            Ok(true)
         }
-        _ => Ok(false),
     }
+    Ok(ret)
 }
 
 #[cfg(not(test))]
@@ -167,6 +159,7 @@ mod tests {
         let encoding = rlp::encode(&proof);
         assert!(encoding.len() < unsafe { serialized_proof.len() });
         unsafe {
+            &mut serialized_proof[..].copy_from_slice(&[0; 1024]);
             &mut serialized_proof[..encoding.len()].copy_from_slice(&encoding);
         };
 
@@ -174,8 +167,8 @@ mod tests {
             &mut address_list[..].copy_from_slice(&[0u8; 1024]);
         };
 
-        // Verify that the acount was indeed in the proof
-        assert_eq!(verify().unwrap(), true);
+        // Verify that no answer is given since no question has been asked.
+        assert_eq!(verify().unwrap().len(), 0);
     }
 
     #[test]
@@ -189,12 +182,23 @@ mod tests {
         let encoding = rlp::encode(&proof);
         assert!(encoding.len() < unsafe { serialized_proof.len() });
         unsafe {
-            &mut address_list[..].copy_from_slice(&[0u8; 1024]);
+            &mut serialized_proof[..].copy_from_slice(&[0u8; 1024]);
             &mut serialized_proof[..encoding.len()].copy_from_slice(&encoding);
         };
 
+        let keys = rlp::encode_list(&vec![Account::Existing(
+            NibbleKey::from(vec![1u8; 32]),
+            0,
+            vec![],
+            false,
+        )]);
+        unsafe {
+            &mut address_list[..].copy_from_slice(&[0u8; 1024]);
+            &mut address_list[..keys.len()].copy_from_slice(&keys);
+        };
+
         // Verify that the acount was indeed in the proof
-        assert_eq!(verify().unwrap(), true);
+        assert_eq!(verify().unwrap()[0], true);
     }
 
     #[test]
@@ -208,6 +212,7 @@ mod tests {
         let encoding = rlp::encode(&proof);
         assert!(encoding.len() < unsafe { serialized_proof.len() });
         unsafe {
+            &mut serialized_proof[..].copy_from_slice(&[0u8; 1024]);
             &mut serialized_proof[..encoding.len()].copy_from_slice(&encoding);
         };
 
@@ -222,8 +227,9 @@ mod tests {
 
         // Verify that the acount was indeed in the proof
         let result = verify();
-        assert!(result.is_err());
-        result.expect_err("missing key");
+        for res in result.unwrap().iter() {
+            assert_eq!(*res, false);
+        }
     }
 
     #[test]
@@ -244,6 +250,7 @@ mod tests {
         let encoding = rlp::encode(&proof);
         assert!(encoding.len() < unsafe { serialized_proof.len() });
         unsafe {
+            &mut serialized_proof[..].copy_from_slice(&[0u8; 1024]);
             &mut serialized_proof[..encoding.len()].copy_from_slice(&encoding);
         };
 
@@ -257,8 +264,8 @@ mod tests {
             &mut address_list[..keys.len()].copy_from_slice(&keys);
         };
 
-        // Verify that the acount was indeed in the proof
-        assert_eq!(verify().unwrap(), true);
+        assert_eq!(verify().unwrap()[0], true);
+        assert_eq!(verify().unwrap()[1], false);
     }
 
     #[test]
