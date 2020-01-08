@@ -13,7 +13,7 @@ jobs:
              rustup default nightly-2019-09-05
              rustup component add rustfmt
              rustup component add clippy
-             rustup component add rust-std-wasm32-unknown-unknown
+             rustup target add wasm32-unknown-unknown
              rustup update
       - run:
            name: Linter
