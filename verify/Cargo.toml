@@ -12,7 +12,7 @@ description = "MPT verification precompile in Rust"
 
 [dependencies]
 multiproof-rs = "^0.1.2" 
-rlp = "0.4.2"
+rlp = "0.4.4"
 
 [lib]
 crate-type = ["cdylib"]
