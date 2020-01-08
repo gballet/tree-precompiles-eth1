@@ -83,7 +83,11 @@ fn verify() -> Result<bool, String> {
     // Deserialize the accounts to verify
     let accounts: Vec<Account> =
         unsafe { rlp::decode_list::<Account>(&address_list[..address_list_size]) };
-    }
+    // Debug traces, do not remove yet
+    //println!("accounts {:?}", accounts);
+    //for account in accounts.iter() {
+    //println!("account={:?}", account);
+    //}
 
     // Deserialize the data into a tree
     let input_proof = unsafe { serialized_proof.to_vec() };
