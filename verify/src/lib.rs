@@ -78,8 +78,14 @@ impl rlp::Encodable for Account {
 }
 
 fn verify() -> Result<bool, String> {
-    unsafe {
-    }
+    // Debug traces, do not remove yet
+    //unsafe {
+    //println!(
+    //"RLP to verify: {:?} {:?}",
+    //&address_list[..address_list_size],
+    //address_list_size
+    //);
+    //}
     // Deserialize the accounts to verify
     let accounts: Vec<Account> =
         unsafe { rlp::decode_list::<Account>(&address_list[..address_list_size]) };
