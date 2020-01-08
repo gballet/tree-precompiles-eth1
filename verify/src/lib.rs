@@ -13,6 +13,11 @@ pub static mut serialized_proof: &'static mut [u8] = &mut [0u8; 1024];
 #[no_mangle]
 pub static mut address_list: &'static mut [u8] = &mut [0u8; 1024];
 
+// An RLP-encoded list of accounts to be verified
+#[allow(non_upper_case_globals)]
+#[no_mangle]
+pub static mut address_list_size: usize = 0;
+
 // An indicator whether the verification succeeded or not
 #[allow(non_upper_case_globals)]
 #[no_mangle]
@@ -76,7 +81,8 @@ fn verify() -> Result<bool, String> {
     unsafe {
     }
     // Deserialize the accounts to verify
-    let accounts: Vec<Account> = unsafe { rlp::decode_list::<Account>(&address_list) };
+    let accounts: Vec<Account> =
+        unsafe { rlp::decode_list::<Account>(&address_list[..address_list_size]) };
     }
 
     // Deserialize the data into a tree
@@ -142,14 +148,95 @@ mod tests {
         // Verify that the acount was indeed in the proof
         assert_eq!(verify().unwrap(), true);
     }
+
+    #[test]
+    fn test_validate_keys() {
+        let mut root = Node::default();
+        root.insert(&NibbleKey::from(vec![0u8; 32]), vec![0u8; 32])
+            .unwrap();
+        root.insert(&NibbleKey::from(vec![1u8; 32]), vec![1u8; 32])
+            .unwrap();
+        let proof = make_multiproof(&root, vec![NibbleKey::from(vec![1u8; 32])]).unwrap();
+        let encoding = rlp::encode(&proof);
+        assert!(encoding.len() < unsafe { serialized_proof.len() });
         unsafe {
-            input_size = encoding.len();
-            &mut input_data[..input_size].copy_from_slice(&encoding);
+            &mut serialized_proof[..encoding.len()].copy_from_slice(&encoding);
+        };
+
+        unsafe {
+            &mut address_list[..].copy_from_slice(&[0u8; 1024]);
         };
 
         // Verify that the acount was indeed in the proof
-        assert!(verify().unwrap());
+        assert_eq!(verify().unwrap(), true);
     }
+
+    #[test]
+    fn test_catch_invalid_key() {
+        let mut root = Node::default();
+        root.insert(&NibbleKey::from(vec![0u8; 32]), vec![0u8; 32])
+            .unwrap();
+        root.insert(&NibbleKey::from(vec![1u8; 32]), vec![1u8; 32])
+            .unwrap();
+        let proof = make_multiproof(&root, vec![NibbleKey::from(vec![1u8; 32])]).unwrap();
+        let encoding = rlp::encode(&proof);
+        assert!(encoding.len() < unsafe { serialized_proof.len() });
+        unsafe {
+            &mut serialized_proof[..encoding.len()].copy_from_slice(&encoding);
+        };
+
+        let keys = rlp::encode_list(&vec![
+            Account::Existing(NibbleKey::from(vec![15u8; 16]), 0, vec![], false),
+            Account::Existing(NibbleKey::from(vec![2u8; 32]), 0, vec![], false),
+        ]);
+        unsafe {
+            address_list_size = keys.len() - 1;
+            &mut address_list[..].copy_from_slice(&[0u8; 1024]);
+            &mut address_list[..keys.len()].copy_from_slice(&keys);
+        };
+
+        // Verify that the acount was indeed in the proof
+        let result = verify();
+        assert!(result.is_err());
+        result.expect_err("missing key");
+    }
+
+    #[test]
+    fn test_validate_keys_null() {
+        let mut root = Node::default();
+        root.insert(&NibbleKey::from(vec![0u8; 32]), vec![0u8; 32])
+            .unwrap();
+        root.insert(&NibbleKey::from(vec![1u8; 32]), vec![1u8; 32])
+            .unwrap();
+        let proof = make_multiproof(
+            &root,
+            vec![
+                NibbleKey::from(vec![1u8; 32]),
+                NibbleKey::from(vec![2u8; 32]),
+            ],
+        )
+        .unwrap();
+        let encoding = rlp::encode(&proof);
+        assert!(encoding.len() < unsafe { serialized_proof.len() });
+        unsafe {
+            &mut serialized_proof[..encoding.len()].copy_from_slice(&encoding);
+        };
+
+        let keys = rlp::encode_list::<Account, Account>(&vec![
+            Account::Existing(NibbleKey::from(vec![1u8; 32]), 0, vec![], false),
+            Account::Existing(NibbleKey::from(vec![2u8; 32]), 0, vec![], false),
+        ]);
+        assert!(keys.len() < unsafe { address_list.len() });
+        unsafe {
+            address_list_size = keys.len() - 1;
+            &mut address_list[..].copy_from_slice(&[0u8; 1024]);
+            &mut address_list[..keys.len()].copy_from_slice(&keys);
+        };
+
+        // Verify that the acount was indeed in the proof
+        assert_eq!(verify().unwrap(), true);
+    }
+
     #[test]
     fn code_decode_account() {
         let account = Account::Existing(NibbleKey::from(vec![1u8; 32]), 0, vec![10u8], false);
