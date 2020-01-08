@@ -1,17 +1,17 @@
 extern crate multiproof_rs;
 extern crate rlp;
 
-use multiproof_rs::{ByteKey, NibbleKey};
+use multiproof_rs::NibbleKey;
 
 // The RLP-serialized proof
 #[allow(non_upper_case_globals)]
 #[no_mangle]
-pub static mut serialized_proof: &'static mut [u8] = &mut [0u8; 1024];
+pub static mut serialized_proof: &mut [u8] = &mut [0u8; 1024];
 
 // An RLP-encoded list of accounts to be verified
 #[allow(non_upper_case_globals)]
 #[no_mangle]
-pub static mut address_list: &'static mut [u8] = &mut [0u8; 1024];
+pub static mut address_list: &mut [u8] = &mut [0u8; 1024];
 
 // An RLP-encoded list of accounts to be verified
 #[allow(non_upper_case_globals)]
@@ -26,7 +26,7 @@ pub static mut valid: bool = false;
 // Where the new root is to be stored
 #[allow(non_upper_case_globals)]
 #[no_mangle]
-pub static mut new_root: &'static mut [u8] = &mut [0u8; 256];
+pub static mut new_root: &mut [u8] = &mut [0u8; 256];
 
 use multiproof_rs::{Multiproof, Node, ProofToTree};
 
@@ -170,11 +170,9 @@ mod tests {
         let encoding = rlp::encode(&proof);
         assert!(encoding.len() < unsafe { serialized_proof.len() });
         unsafe {
-            &mut serialized_proof[..encoding.len()].copy_from_slice(&encoding);
-        };
-
-        unsafe {
+            address_list_size = encoding.len() - 1;
             &mut address_list[..].copy_from_slice(&[0u8; 1024]);
+            &mut serialized_proof[..encoding.len()].copy_from_slice(&encoding);
         };
 
         // Verify that the acount was indeed in the proof
