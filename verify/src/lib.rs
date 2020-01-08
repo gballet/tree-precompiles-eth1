@@ -13,11 +13,6 @@ pub static mut serialized_proof: &mut [u8] = &mut [0u8; 1024];
 #[no_mangle]
 pub static mut address_list: &mut [u8] = &mut [0u8; 1024];
 
-// An RLP-encoded list of accounts to be verified
-#[allow(non_upper_case_globals)]
-#[no_mangle]
-pub static mut address_list_size: usize = 0;
-
 // An indicator whether the verification succeeded or not
 #[allow(non_upper_case_globals)]
 #[no_mangle]
@@ -61,23 +56,47 @@ impl rlp::Decodable for Account {
 impl rlp::Encodable for Account {
     fn rlp_append(&self, stream: &mut rlp::RlpStream) {
         match self {
-            Self::Empty => stream.append_empty_data(),
+            Self::Empty => {
+                stream.append_empty_data();
+            }
             Self::Existing(addr, balance, code, state) => {
-                let mut s = rlp::RlpStream::new();
-                s.begin_unbounded_list()
+                stream
+                    .begin_unbounded_list()
                     .append(addr)
                     .append(balance)
                     .append(code)
                     .append(state)
                     .finalize_unbounded_list();
-                let encoding = s.out();
-                stream.append_raw(&encoding, 1)
             }
         };
     }
 }
 
+fn rlp_stream_size(payload: Vec<u8>) -> usize {
+    match payload.len() {
+        0 => 0,
+        1 => 1,
+        len => {
+            let id = payload[0];
+            if id < 247 {
+                id as usize - 192 + 1
+            } else {
+                let size_size = id as usize - 247;
+                if len < size_size + 1 {
+                    panic!("Invalid payload");
+                }
+                let mut size: usize = 0;
+                for i in 0..size_size {
+                    size = (size << 8) + payload[1 + i] as usize;
+                }
+                size + 1 + size_size
+            }
+        }
+    }
+}
+
 fn verify() -> Result<bool, String> {
+    let address_list_size = unsafe { rlp_stream_size(address_list.to_vec()) };
     // Debug traces, do not remove yet
     //unsafe {
     //println!(
@@ -170,7 +189,6 @@ mod tests {
         let encoding = rlp::encode(&proof);
         assert!(encoding.len() < unsafe { serialized_proof.len() });
         unsafe {
-            address_list_size = encoding.len() - 1;
             &mut address_list[..].copy_from_slice(&[0u8; 1024]);
             &mut serialized_proof[..encoding.len()].copy_from_slice(&encoding);
         };
@@ -198,7 +216,6 @@ mod tests {
             Account::Existing(NibbleKey::from(vec![2u8; 32]), 0, vec![], false),
         ]);
         unsafe {
-            address_list_size = keys.len() - 1;
             &mut address_list[..].copy_from_slice(&[0u8; 1024]);
             &mut address_list[..keys.len()].copy_from_slice(&keys);
         };
@@ -236,7 +253,6 @@ mod tests {
         ]);
         assert!(keys.len() < unsafe { address_list.len() });
         unsafe {
-            address_list_size = keys.len() - 1;
             &mut address_list[..].copy_from_slice(&[0u8; 1024]);
             &mut address_list[..keys.len()].copy_from_slice(&keys);
         };
