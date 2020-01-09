@@ -25,7 +25,7 @@ jobs:
           command: cargo build
       - run:
           name: Unit tests
-          command: cargo test
+          command: cargo test -- --test-threads=1
       - run:
           name: WASM build
           command: cargo build --target wasm32-unknown-unknown
