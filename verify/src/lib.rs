@@ -16,7 +16,7 @@ pub static mut address_list: &mut [u8] = &mut [0u8; 1024];
 // An indicator whether the verification succeeded or not
 #[allow(non_upper_case_globals)]
 #[no_mangle]
-pub static mut valid: bool = false;
+pub static mut valid: &mut [bool] = &mut [false; 1024];
 
 // Where the new root is to be stored
 #[allow(non_upper_case_globals)]
@@ -137,7 +137,7 @@ fn verify() -> Result<Vec<bool>, String> {
 pub extern "C" fn main() {
     let ok = verify().unwrap();
     unsafe {
-        valid = ok;
+        &mut valid[..ok.len()].copy_from_slice(&ok[..]);
     }
 }
 
