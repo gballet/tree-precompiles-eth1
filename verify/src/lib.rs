@@ -137,7 +137,7 @@ fn verify() -> Result<Vec<bool>, String> {
 pub extern "C" fn main() {
     let ok = verify().unwrap();
     unsafe {
-        &mut valid[..ok.len()].copy_from_slice(&ok[..]);
+        valid[..ok.len()].copy_from_slice(&ok[..]);
     }
 }
 
