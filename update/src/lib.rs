@@ -2,6 +2,7 @@ extern crate multiproof_rs;
 extern crate rlp;
 
 use account;
+use account::Account;
 use multiproof_rs::{Multiproof, Node, ProofToTree, Tree};
 
 // The RLP-serialized proof
@@ -50,17 +51,22 @@ fn update() -> Result<Vec<u8>, String> {
 
     // Deserialize the accounts to verify
     let accounts: Vec<account::Account> =
-        unsafe { rlp::decode_list::<account::Account>(&account_list[..account_list_size]) };
+        unsafe { rlp::decode_list::<Account>(&account_list[..account_list_size]) };
 
     // Deserialize the data into a tree
     let input_proof = unsafe { serialized_proof.to_vec() };
     let proof = rlp::decode::<Multiproof>(&input_proof).unwrap();
-    let /*mut*/ tree: Node = proof.rebuild()?;
-    for _account in accounts.iter() {
-        // XXX for this to work, multiproof-rs needs to be modified
-        // to be able to overwrite keys, and Account needs to have
-        // its first member as a public address.
-        //tree.insert(account.0, rlp::encode(account));
+    let mut tree: Node = proof.rebuild()?;
+    for account in accounts.iter() {
+        match account {
+            Account::Empty => panic!("Not supported in this version"),
+            Account::Existing(addr, _, _, _) => {
+                // XXX for this to work, multiproof-rs needs to be modified
+                // to be able to overwrite keys, and Account needs to have
+                // its first member as a public address.
+                tree.insert(addr, rlp::encode(account))?;
+            }
+        }
     }
     Ok(tree.hash())
 }
