@@ -1,17 +1,16 @@
 [package]
-name = "precompile-1x-tree-verify"
+name = "account"
 version = "0.1.0"
 license = "Apache-2.0"
 repository = "https://github.com/gballet/tree-precompiles-eth1"
 authors = ["Guillaume Ballet <gballet@gmail.com>"]
 edition = "2018"
 publish = false
-description = "MPT verification precompile in Rust"
+description = "MPT root update precompile in Rust"
 
 [dependencies]
-multiproof-rs = "^0.1.2" 
+multiproof-rs = "^0.1.2"
 rlp = "0.4.4"
-account = {path="../account"}
 
 [lib]
 crate-type = ["cdylib"]
