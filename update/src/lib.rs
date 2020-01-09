@@ -13,11 +13,6 @@ pub static mut serialized_proof: &mut [u8] = &mut [0u8; 1024];
 // An RLP-encoded list of accounts to be verified
 #[allow(non_upper_case_globals)]
 #[no_mangle]
-pub static mut address_list: &mut [u8] = &mut [0u8; 1024];
-
-// An RLP-encoded list of accounts to be verified
-#[allow(non_upper_case_globals)]
-#[no_mangle]
 pub static mut account_list: &mut [u8] = &mut [0u8; 1024];
 
 // Where the new, updated root is stored.
@@ -47,7 +42,7 @@ fn rlp_stream_size(payload: Vec<u8>) -> usize {
 }
 
 fn update() -> Result<Vec<u8>, String> {
-    let account_list_size = unsafe { rlp_stream_size(address_list.to_vec()) };
+    let account_list_size = unsafe { rlp_stream_size(account_list.to_vec()) };
 
     // Deserialize the accounts to verify
     let accounts: Vec<account::Account> =
@@ -81,4 +76,50 @@ pub extern "C" fn main() {
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use super::multiproof_rs::*;
+    use super::*;
+
+    #[test]
+    fn normal_update() {
+        let mut root = Node::default();
+        root.insert(&NibbleKey::from(vec![0u8; 32]), vec![0u8; 32])
+            .unwrap();
+        root.insert(&NibbleKey::from(vec![1u8; 32]), vec![1u8; 32])
+            .unwrap();
+        let proof = make_multiproof(
+            &root,
+            vec![
+                NibbleKey::from(vec![1u8; 32]),
+                NibbleKey::from(vec![2u8; 32]),
+            ],
+        )
+        .unwrap();
+        let encoding = rlp::encode(&proof);
+        assert!(encoding.len() < unsafe { serialized_proof.len() });
+        unsafe {
+            serialized_proof[..].copy_from_slice(&[0u8; 1024]);
+            serialized_proof[..encoding.len()].copy_from_slice(&encoding);
+        };
+
+        // Change 0x111..111 and add 0x222...222
+        let keys = rlp::encode_list(&vec![
+            Account::Existing(NibbleKey::from(vec![1u8; 32]), 0, vec![], false),
+            Account::Existing(NibbleKey::from(vec![2u8; 32]), 0, vec![], false),
+        ]);
+        assert!(keys.len() < unsafe { account_list.len() });
+        unsafe {
+            account_list[..].copy_from_slice(&[0u8; 1024]);
+            account_list[..keys.len()].copy_from_slice(&keys);
+        };
+
+        let h = update().unwrap();
+        assert_eq!(
+            h,
+            vec![
+                148, 48, 108, 190, 102, 14, 113, 111, 29, 181, 184, 140, 248, 25, 58, 129, 200,
+                126, 242, 57, 171, 233, 186, 169, 100, 79, 63, 231, 75, 131, 243, 157
+            ]
+        );
+    }
+}
