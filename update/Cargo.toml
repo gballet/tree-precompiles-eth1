@@ -11,6 +11,7 @@ description = "MPT root update precompile in Rust"
 [dependencies]
 multiproof-rs = "^0.1.2"
 rlp = "0.4.4"
+account = { version = "0.1.0", path = "../account" }
 
 [lib]
 crate-type = ["cdylib"]

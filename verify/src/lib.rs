@@ -1,7 +1,8 @@
 extern crate multiproof_rs;
 extern crate rlp;
 
-use multiproof_rs::NibbleKey;
+use account;
+use account::Account;
 
 // The RLP-serialized proof
 #[allow(non_upper_case_globals)]
@@ -18,59 +19,7 @@ pub static mut address_list: &mut [u8] = &mut [0u8; 1024];
 #[no_mangle]
 pub static mut valid: &mut [bool] = &mut [false; 1024];
 
-// Where the new root is to be stored
-#[allow(non_upper_case_globals)]
-#[no_mangle]
-pub static mut new_root: &mut [u8] = &mut [0u8; 256];
-
 use multiproof_rs::{Multiproof, Node, ProofToTree};
-
-// Address, value, code, state
-#[derive(Debug, PartialEq)]
-enum Account {
-    Existing(NibbleKey, u32, Vec<u8>, bool),
-    Empty,
-}
-
-impl rlp::Decodable for Account {
-    fn decode(rlp: &rlp::Rlp) -> Result<Self, rlp::DecoderError> {
-        match rlp.item_count()? {
-            4 => {
-                //let addr = rlp.val_at::<NibbleKey>(0)?;
-                // XXX update multiproof to implement Into<Vec<u8>> for ByteKey so
-                // that keys can be stored as bytes instead of nibbles, which would
-                // make proofs shorter.
-                let addr = NibbleKey::from(rlp.val_at::<Vec<u8>>(0)?);
-                let balance = rlp.val_at(1)?;
-                let code = rlp.val_at(2)?;
-                let state = rlp.val_at(3)?;
-
-                Ok(Account::Existing(addr, balance, code, state))
-            }
-            0 => Ok(Account::Empty),
-            n => panic!(format!("Invalid payload {}", n)),
-        }
-    }
-}
-
-impl rlp::Encodable for Account {
-    fn rlp_append(&self, stream: &mut rlp::RlpStream) {
-        match self {
-            Self::Empty => {
-                stream.append_empty_data();
-            }
-            Self::Existing(addr, balance, code, state) => {
-                stream
-                    .begin_unbounded_list()
-                    .append(addr)
-                    .append(balance)
-                    .append(code)
-                    .append(state)
-                    .finalize_unbounded_list();
-            }
-        };
-    }
-}
 
 fn rlp_stream_size(payload: Vec<u8>) -> usize {
     if payload.len() < 2 {
