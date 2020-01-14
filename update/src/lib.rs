@@ -13,11 +13,6 @@ pub static mut serialized_proof: &mut [u8] = &mut [0u8; 1024];
 // An RLP-encoded list of accounts to be verified
 #[allow(non_upper_case_globals)]
 #[no_mangle]
-pub static mut address_list: &mut [u8] = &mut [0u8; 1024];
-
-// An RLP-encoded list of accounts to be verified
-#[allow(non_upper_case_globals)]
-#[no_mangle]
 pub static mut account_list: &mut [u8] = &mut [0u8; 1024];
 
 // Where the new, updated root is stored.
@@ -47,7 +42,7 @@ fn rlp_stream_size(payload: Vec<u8>) -> usize {
 }
 
 fn update() -> Result<Vec<u8>, String> {
-    let account_list_size = unsafe { rlp_stream_size(address_list.to_vec()) };
+    let account_list_size = unsafe { rlp_stream_size(account_list.to_vec()) };
 
     // Deserialize the accounts to verify
     let accounts: Vec<account::Account> =
@@ -81,4 +76,95 @@ pub extern "C" fn main() {
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use super::*;
+    use multiproof_rs::*;
+
+    fn prepare_env(tree_keys: Vec<NibbleKey>, proof_keys: Vec<NibbleKey>, accounts: Vec<u8>) {
+        let mut root = Node::default();
+        for key in tree_keys.iter() {
+            root.insert(key, vec![0u8; 32]).unwrap();
+        }
+
+        let proof = make_multiproof(&root, proof_keys).unwrap();
+        let encoding = rlp::encode(&proof);
+
+        unsafe {
+            &mut serialized_proof[..].copy_from_slice(&[0u8; 1024]);
+            &mut serialized_proof[..encoding.len()].copy_from_slice(&encoding);
+        };
+
+        assert!(accounts.len() < unsafe { account_list.len() });
+        unsafe {
+            &mut account_list[..].copy_from_slice(&[0u8; 1024]);
+            &mut account_list[..accounts.len()].copy_from_slice(&accounts[..]);
+        };
+    }
+
+    #[test]
+    fn test_update_normal() {
+        let tree_keys = vec![
+            NibbleKey::from(vec![0u8; 32]),
+            NibbleKey::from(vec![1u8; 32]),
+        ];
+
+        let accounts = rlp::encode_list::<Account, Account>(&vec![Account::Existing(
+            NibbleKey::from(vec![1u8; 32]),
+            0,
+            vec![],
+            false,
+        )]);
+
+        prepare_env(tree_keys.clone(), tree_keys, accounts);
+        assert_eq!(
+            update().unwrap(),
+            vec![
+                170, 172, 245, 161, 175, 166, 51, 209, 162, 167, 251, 91, 208, 69, 169, 240, 88,
+                220, 253, 49, 152, 82, 135, 150, 24, 127, 34, 192, 37, 87, 201, 69
+            ]
+        );
+    }
+
+    #[test]
+    fn test_no_update() {
+        let tree_keys = vec![
+            NibbleKey::from(vec![0u8; 32]),
+            NibbleKey::from(vec![1u8; 32]),
+        ];
+
+        let accounts = rlp::encode_list::<Account, Account>(&vec![]);
+
+        prepare_env(tree_keys.clone(), tree_keys, vec![]);
+        assert_eq!(
+            update().unwrap(),
+            vec![
+                235, 187, 103, 171, 221, 121, 254, 77, 140, 151, 30, 221, 136, 176, 23, 212, 99,
+                236, 120, 222, 139, 68, 122, 134, 96, 214, 189, 187, 175, 12, 197, 17
+            ]
+        );
+    }
+
+    #[test]
+    fn test_update_missing() {
+        let tree_keys = vec![
+            NibbleKey::from(vec![0u8; 32]),
+            NibbleKey::from(vec![1u8; 32]),
+        ];
+
+        let accounts = rlp::encode_list::<Account, Account>(&vec![Account::Existing(
+            NibbleKey::from(vec![2u8; 32]),
+            0,
+            vec![],
+            false,
+        )]);
+
+        prepare_env(tree_keys.clone(), tree_keys, accounts);
+        assert_eq!(
+            update().unwrap(),
+            vec![
+                249, 151, 222, 232, 123, 63, 47, 90, 35, 139, 30, 204, 152, 2, 57, 67, 67, 137, 29,
+                83, 173, 91, 135, 42, 228, 57, 243, 146, 17, 155, 198, 255
+            ]
+        );
+    }
+}
