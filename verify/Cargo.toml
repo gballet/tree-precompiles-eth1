@@ -9,7 +9,7 @@ publish = false
 description = "MPT verification precompile in Rust"
 
 [dependencies]
-multiproof-rs = "^0.1.2" 
+multiproof-rs = "^0.1.3" 
 rlp = "0.4.4"
 account = { version = "0.1", path="../account" }
 

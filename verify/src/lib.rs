@@ -19,7 +19,7 @@ pub static mut address_list: &mut [u8] = &mut [0u8; 1024];
 #[no_mangle]
 pub static mut valid: &mut [bool] = &mut [false; 1024];
 
-use multiproof_rs::{Multiproof, Node, ProofToTree};
+use multiproof_rs::{Multiproof, Node, ProofToTree, Tree};
 
 fn rlp_stream_size(payload: Vec<u8>) -> usize {
     if payload.len() < 2 {
@@ -72,9 +72,7 @@ fn verify() -> Result<Vec<bool>, String> {
         match account {
             Account::Empty => {}
             Account::Existing(addr, _, _, _) => {
-                ret[i] =
-                        /* !tree.has_key(addr) */
-                        tree.is_key_present(addr);
+                ret[i] = tree.has_key(addr);
             }
         }
     }
