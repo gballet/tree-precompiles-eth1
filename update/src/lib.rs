@@ -132,8 +132,6 @@ mod tests {
             NibbleKey::from(vec![1u8; 32]),
         ];
 
-        let accounts = rlp::encode_list::<Account, Account>(&vec![]);
-
         prepare_env(tree_keys.clone(), tree_keys, vec![]);
         assert_eq!(
             update().unwrap(),
@@ -151,20 +149,26 @@ mod tests {
             NibbleKey::from(vec![1u8; 32]),
         ];
 
-        let accounts = rlp::encode_list::<Account, Account>(&vec![Account::Existing(
+        let accounts = vec![Account::Existing(
             NibbleKey::from(vec![2u8; 32]),
             0,
             vec![],
             false,
-        )]);
+        )];
+        let accounts_rlp = rlp::encode_list::<Account, Account>(&accounts);
 
-        prepare_env(tree_keys.clone(), tree_keys, accounts);
-        assert_eq!(
-            update().unwrap(),
-            vec![
-                249, 151, 222, 232, 123, 63, 47, 90, 35, 139, 30, 204, 152, 2, 57, 67, 67, 137, 29,
-                83, 173, 91, 135, 42, 228, 57, 243, 146, 17, 155, 198, 255
-            ]
-        );
+        let mut final_tree = Node::default();
+        final_tree
+            .insert(&NibbleKey::from(vec![0u8; 32]), vec![0u8; 32])
+            .unwrap();
+        final_tree
+            .insert(&NibbleKey::from(vec![1u8; 32]), vec![0u8; 32])
+            .unwrap();
+        final_tree
+            .insert(&NibbleKey::from(vec![2u8; 32]), rlp::encode(&accounts[0]))
+            .unwrap();
+
+        prepare_env(tree_keys.clone(), tree_keys, accounts_rlp);
+        assert_eq!(update().unwrap(), final_tree.hash());
     }
 }
