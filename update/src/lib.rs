@@ -56,9 +56,6 @@ fn update() -> Result<Vec<u8>, String> {
         match account {
             Account::Empty => panic!("Not supported in this version"),
             Account::Existing(addr, _, _, _) => {
-                // XXX for this to work, multiproof-rs needs to be modified
-                // to be able to overwrite keys, and Account needs to have
-                // its first member as a public address.
                 tree.insert(addr, rlp::encode(account))?;
             }
         }
