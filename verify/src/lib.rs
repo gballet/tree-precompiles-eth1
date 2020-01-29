@@ -91,7 +91,6 @@ pub extern "C" fn main() {
 #[cfg(test)]
 mod tests {
     use super::multiproof_rs::node::*;
-    use super::multiproof_rs::utils::*;
     use super::multiproof_rs::*;
     use super::*;
 
