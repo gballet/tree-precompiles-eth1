@@ -65,7 +65,7 @@ fn verify() -> Result<Vec<bool>, String> {
 
     // Deserialize the data into a tree
     let input_proof = unsafe { serialized_proof.to_vec() };
-    let proof = rlp::decode::<Multiproof>(&input_proof).unwrap();
+    let proof = rlp::decode::<Multiproof>(&input_proof).map_err(|_| "decode error")?;
     let tree: Node = proof.rebuild()?;
     // Check that each account in present in the tree
     for (i, account) in accounts.iter().enumerate() {
@@ -82,9 +82,13 @@ fn verify() -> Result<Vec<bool>, String> {
 #[cfg(not(test))]
 #[no_mangle]
 pub extern "C" fn main() {
-    let ok = verify().unwrap();
-    unsafe {
-        valid[..ok.len()].copy_from_slice(&ok[..]);
+    match verify() {
+        Ok(ok) => unsafe { valid[..ok.len()].copy_from_slice(&ok[..]) },
+        Err(_) => unsafe {
+            for v in valid.iter_mut() {
+                *v = false;
+            }
+        },
     }
 }
 
