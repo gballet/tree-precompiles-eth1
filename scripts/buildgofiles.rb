@@ -2,6 +2,10 @@
 
 require 'erb'
 
+GoPath = ENV["GOPATH"]
+
+raise if GoPath.length == 0
+
 system("cargo build --target=wasm32-unknown-unknown --release")
 
 template = ERB.new("// Copyright 2020 The go-ethereum Authors
@@ -25,6 +29,6 @@ package vm
 var wasm<%= precompile.capitalize %> = []byte{<%= datastr %>}")
 
 ["verify", "update"].each do |precompile|
-  datastr = File.read("#{ENV["PWD"]}/target/wasm32-unknown-unknown/release/precompile_1x_tree_verify.wasm").bytes.inspect.gsub(/\[|\]/, "")
-  File.write("wasm_#{precompile}.go", template.result(binding))
+  datastr = File.read("#{ENV["PWD"]}/target/wasm32-unknown-unknown/release/precompile_1x_tree_#{precompile}.wasm").bytes.inspect.gsub(/\[|\]/, "")
+  File.write("#{GoPath}/src/github.com/ethereum/go-ethereum/core/vm/wasm_#{precompile}.go", template.result(binding))
 end
