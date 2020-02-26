@@ -71,7 +71,7 @@ fn verify() -> Result<Vec<bool>, String> {
     for (i, account) in accounts.iter().enumerate() {
         match account {
             Account::Empty => {}
-            Account::Existing(addr, _, _, _) => {
+            Account::Existing(addr, _, _, _, _) => {
                 ret[i] = tree.has_key(addr);
             }
         }

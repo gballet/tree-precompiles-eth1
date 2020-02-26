@@ -55,7 +55,7 @@ fn update() -> Result<Vec<u8>, String> {
     for account in accounts.iter() {
         match account {
             Account::Empty => panic!("Not supported in this version"),
-            Account::Existing(addr, _, _, _) => {
+            Account::Existing(addr, _, _, _, _) => {
                 tree.insert(addr, rlp::encode(account))?;
             }
         }
@@ -108,6 +108,7 @@ mod tests {
         let accounts = rlp::encode_list::<Account, Account>(&vec![Account::Existing(
             NibbleKey::from(vec![1u8; 32]),
             0,
+            0,
             vec![],
             false,
         )]);
@@ -116,8 +117,8 @@ mod tests {
         assert_eq!(
             update().unwrap(),
             vec![
-                170, 172, 245, 161, 175, 166, 51, 209, 162, 167, 251, 91, 208, 69, 169, 240, 88,
-                220, 253, 49, 152, 82, 135, 150, 24, 127, 34, 192, 37, 87, 201, 69
+                170, 88, 142, 70, 168, 127, 29, 152, 75, 55, 157, 146, 147, 100, 73, 50, 155, 23,
+                12, 124, 36, 168, 8, 31, 91, 26, 215, 247, 112, 139, 114, 173
             ]
         );
     }
@@ -148,6 +149,7 @@ mod tests {
 
         let accounts = vec![Account::Existing(
             NibbleKey::from(vec![2u8; 32]),
+            0,
             0,
             vec![],
             false,
