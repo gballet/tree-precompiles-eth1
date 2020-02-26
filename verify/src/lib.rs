@@ -139,6 +139,7 @@ mod tests {
         let keys = rlp::encode_list(&vec![Account::Existing(
             NibbleKey::from(vec![1u8; 32]),
             0,
+            0,
             vec![],
             false,
         )]);
@@ -167,8 +168,8 @@ mod tests {
         };
 
         let keys = rlp::encode_list(&vec![
-            Account::Existing(NibbleKey::from(vec![15u8; 16]), 0, vec![], false),
-            Account::Existing(NibbleKey::from(vec![2u8; 32]), 0, vec![], false),
+            Account::Existing(NibbleKey::from(vec![15u8; 16]), 0, 0, vec![], false),
+            Account::Existing(NibbleKey::from(vec![2u8; 32]), 0, 0, vec![], false),
         ]);
         unsafe {
             &mut address_list[..].copy_from_slice(&[0u8; 1024]);
@@ -205,8 +206,8 @@ mod tests {
         };
 
         let keys = rlp::encode_list::<Account, Account>(&vec![
-            Account::Existing(NibbleKey::from(vec![1u8; 32]), 0, vec![], false),
-            Account::Existing(NibbleKey::from(vec![2u8; 32]), 0, vec![], false),
+            Account::Existing(NibbleKey::from(vec![1u8; 32]), 0, 0, vec![], false),
+            Account::Existing(NibbleKey::from(vec![2u8; 32]), 0, 0, vec![], false),
         ]);
         assert!(keys.len() < unsafe { address_list.len() });
         unsafe {
@@ -220,14 +221,14 @@ mod tests {
 
     #[test]
     fn code_decode_account() {
-        let account = Account::Existing(NibbleKey::from(vec![1u8; 32]), 0, vec![10u8], false);
+        let account = Account::Existing(NibbleKey::from(vec![1u8; 32]), 0, 0, vec![10u8], false);
         let encoding = rlp::encode(&account);
         let decoded = rlp::decode::<Account>(&encoding).unwrap();
         assert_eq!(account, decoded);
 
         let accounts = vec![
-            Account::Existing(NibbleKey::from(vec![1u8; 32]), 0, vec![10u8], false),
-            Account::Existing(NibbleKey::from(vec![2u8; 32]), 0, vec![10u8], false),
+            Account::Existing(NibbleKey::from(vec![1u8; 32]), 0, 0, vec![10u8], false),
+            Account::Existing(NibbleKey::from(vec![2u8; 32]), 0, 0, vec![10u8], false),
         ];
         let encoding = rlp::encode_list(&accounts);
         let decoded = rlp::decode_list::<Account>(&encoding);
