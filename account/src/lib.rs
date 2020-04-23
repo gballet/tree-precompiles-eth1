@@ -13,7 +13,7 @@ impl Account {
             Account::Existing(_, _, ref mut balance, _, _) => *balance += amount,
             _ => return Err("can not increase the balance of an empty account"),
         }
-        return Ok(());
+        Ok(())
     }
 
     pub fn withdraw(&mut self, amount: u64) -> Result<(), &str> {
@@ -27,7 +27,7 @@ impl Account {
             }
             _ => return Err("Can not increase the balance of an empty account"),
         }
-        return Ok(());
+        Ok(())
     }
 }
 
