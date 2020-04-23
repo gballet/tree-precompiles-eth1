@@ -7,6 +7,30 @@ pub enum Account {
     Empty,
 }
 
+impl Account {
+    pub fn deposit(&mut self, amount: u64) -> Result<(), &str> {
+        match self {
+            Account::Existing(_, _, ref mut balance, _, _) => *balance += amount,
+            _ => return Err("can not increase the balance of an empty account"),
+        }
+        return Ok(());
+    }
+
+    pub fn withdraw(&mut self, amount: u64) -> Result<(), &str> {
+        match self {
+            Account::Existing(_, _, ref mut balance, _, _) => {
+                if *balance >= amount {
+                    *balance += amount
+                } else {
+                    return Err("Insufficient balance");
+                }
+            }
+            _ => return Err("Can not increase the balance of an empty account"),
+        }
+        return Ok(());
+    }
+}
+
 impl rlp::Decodable for Account {
     fn decode(rlp: &rlp::Rlp) -> Result<Self, rlp::DecoderError> {
         match rlp.item_count()? {
