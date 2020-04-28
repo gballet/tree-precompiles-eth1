@@ -1,8 +1,8 @@
+extern crate jupiter_account;
 extern crate multiproof_rs;
 extern crate rlp;
 
-use account;
-use account::Account;
+use jupiter_account::Account;
 
 // The RLP-serialized proof
 #[allow(non_upper_case_globals)]

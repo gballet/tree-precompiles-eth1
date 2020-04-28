@@ -1,7 +1,6 @@
 [workspace]
 
 members = [
-	"account",
 	"update",
 	"verify"
 ]

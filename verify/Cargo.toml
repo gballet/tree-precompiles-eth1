@@ -11,7 +11,7 @@ description = "MPT verification precompile in Rust"
 [dependencies]
 multiproof-rs = "^0.1.4" 
 rlp = "0.4.4"
-account = { version = "0.1", path="../account" }
+jupiter-account = "^0.1.1" 
 
 [lib]
 crate-type = ["cdylib"]

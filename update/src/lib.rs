@@ -1,8 +1,8 @@
+extern crate jupiter_account;
 extern crate multiproof_rs;
 extern crate rlp;
 
-use account;
-use account::Account;
+use jupiter_account::Account;
 use multiproof_rs::{Multiproof, Node, ProofToTree, Tree};
 
 // The RLP-serialized proof
@@ -45,7 +45,7 @@ fn update() -> Result<Vec<u8>, String> {
     let account_list_size = unsafe { rlp_stream_size(account_list.to_vec()) };
 
     // Deserialize the accounts to verify
-    let accounts: Vec<account::Account> =
+    let accounts: Vec<Account> =
         unsafe { rlp::decode_list::<Account>(&account_list[..account_list_size]) };
 
     // Deserialize the data into a tree
